@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Examinador PSeInt | Aula de práctica</title>
+<style>
+:root{--bg:#0b1020;--panel:#131b31;--panel2:#192440;--text:#edf2ff;--muted:#a9b5d0;--line:#2a3858;--accent:#7c9cff;--good:#38c995;--warn:#ffc66d;--bad:#ff7885}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#18264a 0,#0b1020 55%);color:var(--text);font:15px/1.55 system-ui,Segoe UI,Arial,sans-serif}
+.wrap{max-width:1100px;margin:auto;padding:26px 16px 60px}.hero{padding:25px;border:1px solid var(--line);border-radius:20px;background:linear-gradient(135deg,#19294c,#121a30);box-shadow:0 15px 45px #0004}
+h1{font-size:clamp(25px,4vw,38px);margin:0 0 6px}.sub{color:var(--muted);margin:0}.tag{display:inline-block;border:1px solid #40527a;border-radius:30px;padding:4px 10px;color:#cbd7ff;font-size:12px;margin:0 6px 12px 0}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:end;margin:18px 0}.field{display:grid;gap:5px;color:var(--muted);font-size:13px}select,button,textarea{font:inherit}select{background:var(--panel);color:var(--text);border:1px solid var(--line);padding:10px 12px;border-radius:10px}
+button{border:0;border-radius:10px;padding:10px 15px;font-weight:700;cursor:pointer;background:var(--accent);color:#081127}button.secondary{background:#263655;color:var(--text);border:1px solid #405174}button:disabled{opacity:.45;cursor:not-allowed}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:15px}.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px;min-width:0}.card h2{font-size:18px;margin:0 0 8px}.card h3{font-size:15px;margin:18px 0 6px}.wide{grid-column:1/-1}.muted{color:var(--muted)}.points{color:#b9c9ff;font-weight:700;font-size:13px}.prompt{white-space:pre-line;margin:12px 0}.requirements{margin:8px 0 0;padding-left:20px;color:#d2dcf2}.requirements li{margin:3px 0}
+textarea{width:100%;min-height:220px;resize:vertical;background:#080e1c;color:#e8efff;border:1px solid #354466;border-radius:12px;padding:14px;font:13px/1.6 Consolas,monospace;tab-size:2;outline:none}textarea:focus{border-color:var(--accent)}
+.actions{display:flex;gap:9px;flex-wrap:wrap;margin-top:12px}.result{margin-top:12px;border-radius:12px;padding:13px;background:#0c1426;border:1px solid var(--line)}.result ul{padding-left:20px;margin:6px 0}.good{color:var(--good)}.warn{color:var(--warn)}.bad{color:var(--bad)}
+.score{font-size:30px;font-weight:800}.hidden{display:none}.progress{height:8px;background:#25314d;border-radius:9px;overflow:hidden;margin:10px 0}.progress span{display:block;height:100%;background:var(--good);width:0}
+footer{margin-top:22px;color:var(--muted);font-size:12px}.notice{border-left:3px solid var(--warn);padding:9px 12px;background:#211d19;color:#f6d9a9;border-radius:5px;margin-top:12px}
+@media(max-width:760px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}.wrap{padding:14p x 10px 40px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="hero">
+ <span class="tag">PSeInt · Exámenes prácticos</span>
+ <h1>🎓 Examinador personal</h1>
+ <p class="sub">Practica, escribe pseudocódigo, recibe observaciones y obtén una calificación orientativa. Comparte este archivo HTML con tus amigos.</p>
+</header>
+
+<div class="toolbar">
+ <label class="field">Dificultad
+  <select id="level"><option>Fácil</option><option selected>Intermedio</option><option>Difícil</option></select>
+ </label>
+ <button id="newExam">Generar examen nuevo</button>
+ <button class="secondary" id="reset">Limpiar respuestas</button>
+ <span class="muted" id="examNo">Examen 1</span>
+</div>
+
+<div class="card" style="margin-bottom:15px">
+ <strong>Instrucciones</strong>
+ <p class="muted" style="margin:5px 0 0">Cada examen contiene exactamente 3 ejercicios: dos secuenciales y uno lógico con condicionales. Escribe tu solución en PSeInt y pulsa «Analizar». Cuando termines, pulsa «Calificar examen».</p>
+</div>
+
+<div id="questions" class="grid"></div>
+
+<div class="card wide" style="margin-top:15px">
+ <h2>📋 Resultado de la evaluación</h2>
+ <p class="muted">La nota final aparece cuando hayas analizado las tres respuestas y califiques el examen.</p>
+ <div id="finalResult" class="result">Todavía no has calificado este examen.</div>
+ <div class="actions"><button id="grade">Calificar examen</button><button class="secondary" id="print">Imprimir / Guardar como PDF</button></div>
+</div>
+<footer>Temario limitado a secuenciales, variables, tipos de datos, entrada/salida, operadores, expresiones y condicionales. No incluye ciclos, arreglos ni subprocesos.</footer>
+</div>
+<script>
+"use strict";
+const bank = {
+"Fácil":[
+{type:"sec",title:"La papelería",prompt:"Una papelería necesita calcular el total de una compra. Pide el nombre del producto, la cantidad comprada y el precio por unidad. Muestra el producto, la cantidad y el valor total.",req:["Declara variables con tipos adecuados.","Solicita los tres datos usando Leer.","Calcula el total mediante una operación matemática.","Muestra un resumen claro con Escribir."],terms:["leer","escribir"],vars:3,math:true,logic:false},
+{type:"sec",title:"Conversión de minutos",prompt:"Solicita una cantidad de minutos y conviértela a horas y minutos restantes. Muestra ambos resultados.",req:["Declara las variables necesarias.","Lee la cantidad total de minutos.","Usa operaciones de división entera y residuo.","Muestra las horas y los minutos restantes."],terms:["leer","escribir"],vars:3,math:true,logic:false},
+{type:"logic",title:"Acceso a una actividad",prompt:"Solicita la edad de una persona. Si tiene 18 años o más, muestra «Puede ingresar». En caso contrario, muestra «No puede ingresar».",req:["Lee y declara la edad con un tipo adecuado.","Usa Si, Entonces, SiNo y FinSi.","Compara la edad con el límite indicado.","Muestra el mensaje correspondiente en cada caso."],terms:["si","entonces","sino","finsi","leer","escribir"],vars:1,math:false,logic:true}
+],
+"Intermedio":[
+{type:"sec",title:"Factura de cafetería",prompt:"Una cafetería vende desayunos. Solicita el nombre del cliente, la cantidad de desayunos y el precio unitario. Calcula subtotal, IVA del 19 % y total a pagar. Presenta los tres valores.",req:["Declara variables numéricas y de texto.","Lee nombre, cantidad y precio.","Calcula subtotal, IVA (19 %) y total.","Muestra los tres resultados y el nombre del cliente."],terms:["leer","escribir"],vars:5,math:true,logic:false},
+{type:"sec",title:"Promedio académico",prompt:"Solicita el nombre de un estudiante y tres notas. Calcula el promedio aritmético y muestra el nombre y el promedio con un mensaje descriptivo.",req:["Declara nombre y tres notas.","Lee los cuatro datos.","Calcula el promedio sumando las notas y dividiendo entre tres.","Muestra el nombre y el promedio."],terms:["leer","escribir"],vars:5,math:true,logic:false},
+{type:"logic",title:"Clasificación de una nota",prompt:"Solicita una nota entre 0 y 5. Si está fuera de ese rango, muestra «Nota no válida». Si está entre 0 y 2.9, muestra «Insuficiente». Si está entre 3 y 3.9, muestra «Aceptable». Si está entre 4 y 5, muestra «Excelente».",req:["Declara y lee la nota.","Valida que esté entre 0 y 5.","Usa condicionales para separar los tres rangos.","Evita que se muestren dos categorías a la vez."],terms:["si","entonces","sino","finsi","leer","escribir"],vars:1,math:false,logic:true}
+],
+"Difícil":[
+{type:"sec",title:"Pago de un servicio",prompt:"Solicita el nombre del usuario, el consumo en unidades y el costo por unidad. Calcula el subtotal, un cargo fijo de 12 000 y el total. Muestra un recibo con todos los datos.",req:["Declara variables de texto y numéricas.","Lee los datos solicitados.","Calcula subtotal y total incluyendo el cargo fijo una sola vez.","Presenta un recibo ordenado."],terms:["leer","escribir"],vars:5,math:true,logic:false},
+{type:"sec",title:"Reparto de presupuesto",prompt:"Solicita un presupuesto total. Calcula y muestra el 40 % para alimentación, el 30 % para transporte y el 30 % restante para ahorro. Muestra cada valor y verifica que la suma corresponda al presupuesto.",req:["Declara las variables necesarias.","Lee el presupuesto.","Calcula los tres porcentajes.","Muestra los valores y la suma de comprobación."],terms:["leer","escribir"],vars:5,math:true,logic:false},
+{type:"logic",title:"Descuento y envío",prompt:"Una tienda solicita el valor de una compra y si el cliente es miembro (responde S o N). Si la compra es de 200 000 o más, recibe 15 % de descuento; de lo contrario, no recibe descuento. Además, si es miembro recibe envío gratis; si no, paga 10 000 de envío. Muestra descuento, costo de envío y total.",req:["Lee el valor y la respuesta de membresía.","Usa una decisión para determinar el descuento.","Usa otra decisión para determinar el envío.","Calcula el total sin mezclar descuento y envío.","Muestra los tres valores y el total."],terms:["si","entonces","sino","finsi","leer","escribir"],vars:5,math:true,logic:true}
+]};
+let exam=1, current=[], analyzed=[false,false,false], results=[null,null,null];
+const $=id=>document.getElementById(id);
+function shuffle(a){return [...a].sort(()=>Math.random()-.5)}
+function makeExam(){
+ const level=$("level").value, items=shuffle(bank[level]);
+ current=items; analyzed=[false,false,false];results=[null,null,null];
+ $("examNo").textContent="Examen "+exam+" · "+level;
+ $("finalResult").textContent="Todavía no has calificado este examen.";
+ $("questions").innerHTML="";
+ current.forEach((q,i)=>{
+  const card=document.createElement("section");card.className="card";
+  card.innerHTML=`<div class="points">PREGUNTA ${i+1} · ${i===2?"2.0":"1.5"} PUNTOS · ${q.type==="sec"?"SECUENCIAL":"LÓGICA / CONDICIONALES"}</div>
+  <h2>${q.title}</h2><p class="prompt">${q.prompt}</p><h3>Requisitos</h3><ul class="requirements">${q.req.map(x=>`<li>${x}</li>`).join("")}</ul>
+  <h3>Tu pseudocódigo</h3><textarea id="code${i}" spellcheck="false" placeholder="Algoritmo Nombre&#10;    // Escribe aquí tu solución&#10;FinAlgoritmo"></textarea>
+  <div class="actions"><button class="analyze" data-i="${i}">Analizar código</button><button class="secondary clear" data-i="${i}">Borrar</button></div>
+  <div id="result${i}" class="result muted">Pendiente de análisis.</div>`;
+  $("questions").appendChild(card);
+ });
+ document.querySelectorAll(".analyze").forEach(b=>b.onclick=()=>analyze(+b.dataset.i));
+ document.querySelectorAll(".clear").forEach(b=>b.onclick=()=>{$("code"+b.dataset.i).value="";analyzed[b.dataset.i]=false;results[b.dataset.i]=null;$("result"+b.dataset.i).textContent="Respuesta borrada.";});
+}
+function analyze(i){
+ const q=current[i], code=$("code"+i).value.trim(), c=code.toLowerCase();
+ const errors=[], warnings=[], rec=[];
+ if(!code){errors.push("No has escrito pseudocódigo.");}
+ if(!/\balgoritmo\s+\w+/i.test(code))errors.push("No se encuentra «Algoritmo» seguido de un nombre.");
+ if(!/\bfinalgoritmo\b/i.test(code))errors.push("Falta «FinAlgoritmo».");
+ if(!/\bdefinir\b/i.test(code))warnings.push("No se detectó «Definir». Revisa que hayas declarado todas las variables.");
+ if(!/\bleer\b/i.test(code))errors.push("No se detectó ninguna instrucción «Leer».");
+ if(!/\bescribir\b/i.test(code))errors.push("No se detectó ninguna instrucción «Escribir».");
+ const si=(c.match(/\bsi\b/g)||[]).length, finsi=(c.match(/\bfinsi\b/g)||[]).length;
+ if(q.logic && si===0)errors.push("El ejercicio requiere condicionales y no se detectó «Si».");
+ if(q.logic && !/\bentonces\b/.test(c))errors.push("No se detectó «Entonces».");
+ if(q.logic && !/\bsino\b/.test(c))warnings.push("No se detectó «SiNo»; comprueba si necesitas contemplar el caso contrario.");
+ if(si>finsi)errors.push("Hay más aperturas «Si» que cierres «FinSi».");
+ if(finsi>si)errors.push("Hay más «FinSi» que aperturas «Si».");
+ if(q.math && !/[+\-*/^%]/.test(c))warnings.push("No se identificó un operador matemático; revisa los cálculos solicitados.");
+ if(!/\bdefinir\b[\s\S]*\bcomo\b/i.test(code))warnings.push("No se pudo confirmar una declaración con «Definir ... Como ...».");
+ const defined=(code.match(/\bdefinir\b([\s\S]*?)(?=\bleer\b|\bescribir\b|\bsi\b|\bfinalgoritmo\b)/i)||[])[1]||"";
+ if(q.vars>=4 && (defined.match(/,/g)||[]).length<2)warnings.push("Puede que falten variables. Comprueba que declaraste cada dato y resultado.");
+ if(q.logic && !/[<>=]/.test(c))warnings.push("No se detectó un operador relacional (<, >, =, <= o >=).");
+ if(/\bpara\b|\bmientras\b|\brepetir\b|\bdimension\b|\bsubproceso\b/i.test(c))warnings.push("Se detectó un tema fuera del temario permitido para este examen.");
+ if(!errors.length)rec.push("La estructura básica detectada no presenta errores automáticos evidentes.");
+ rec.push("Comprueba manualmente que los nombres usados coincidan con las variables declaradas.");
+ rec.push("Prueba valores normales, valores límite y casos alternativos en PSeInt.");
+ const status=errors.length?"Requiere correcciones":warnings.length?"Revisión recomendada":"Estructura básica aceptable";
+ results[i]={errors,warnings,rec,status,code};analyzed[i]=true;
+ $("result"+i).innerHTML=`<strong>${status}</strong><p class="${errors.length?"bad":warnings.length?"warn":"good"}">${errors.length} error(es) detectado(s) · ${warnings.length} advertencia(s)</p>
+ ${errors.length?`<b class="bad">Errores</b><ul>${errors.map(x=>`<li>${x}</li>`).join("")}</ul>`:""}
+ ${warnings.length?`<b class="warn">Advertencias</b><ul>${warnings.map(x=>`<li>${x}</li>`).join("")}</ul>`:""}
+ <b>Recomendaciones</b><ul>${rec.map(x=>`<li>${x}</li>`).join("")}</ul>
+ <small class="muted">Análisis textual local: no se ejecutó el código en PSeInt y no se puede garantizar que los resultados sean correctos.</small>`;
+}
+function grade(){
+ for(let i=0;i<3;i++)if(!analyzed[i])analyze(i);
+ let total=0, detail=[];
+ current.forEach((q,i)=>{
+  const r=results[i], max=i===2?2:1.5;
+  let deductions=r.errors.length*.3+r.warnings.length*.12;
+  let score=Math.max(0,max-deductions);
+  if(!r.code.trim())score=0;
+  score=Math.round(score*100)/100;total+=score;
+  detail.push(`<li><b>Pregunta ${i+1}:</b> ${score.toFixed(2)} / ${max.toFixed(2)} puntos. ${r.errors.length} error(es), ${r.warnings.length} advertencia(s). <span class="muted">La lógica y el resultado deben comprobarse ejecutando el programa.</span></li>`);
+ });
+ total=Math.min(5,Math.round(total*100)/100);
+ const feedback=total>=4.5?"Excelente estructura detectada. Verifica los casos de prueba en PSeInt.":total>=3.5?"Buen avance. Corrige advertencias y valida la lógica.":total>=3?"Vas progresando; revisa las declaraciones, entradas y condiciones.":"Necesitas reforzar la estructura y revisar cada requisito del enunciado.";
+ $("finalResult").innerHTML=`<div class="score">${total.toFixed(2)} / 5.0</div><div class="progress"><span style="width:${total/5*100}%"></span></div><b>${feedback}</b><h3>Desglose</h3><ul>${detail.join("")}</ul><p><b>Importante:</b> esta nota es orientativa y se basa en patrones y advertencias automáticas. No valida por completo la lógica, los tipos ni los resultados; para una calificación definitiva, ejecuta cada algoritmo en PSeInt y comprueba los casos de prueba.</p>`;
+}
+$("newExam").onclick=()=>{exam++;makeExam();window.scrollTo({top:0,behavior:"smooth"});};
+$("reset").onclick=()=>{makeExam();};
+$("grade").onclick=grade;
+$("print").onclick=()=>window.print();
+makeExam();
+</script>
+</body>
+</html>
